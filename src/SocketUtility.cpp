@@ -1,11 +1,8 @@
-#ifndef SOCKETUTILITY_H
-#define SOCKETUTILITY_H
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <string.h>
+#include "SocketUtility.h"
 
 static const int MAXPENDING = 5;	// Maximum outstanding connection requests
 
@@ -49,7 +46,7 @@ int SetupTCPServerSocket(const char *service) {
 			continue;
 
 		// Bind to the local address and set socket to listen
-		if ((bind(servSock, addr->ai+addr, addr->ai_addrlen) == 0) &&
+		if ((bind(servSock, addr->ai_addr, addr->ai_addrlen) == 0) &&
 				(listen(servSock, MAXPENDING) == 0)) {
 			break;
 		}
@@ -71,16 +68,10 @@ int AcceptTCPConnection(int servSock) {
 	socklen_t clntAddrLen = sizeof(clntAddr);
 
 	// Wait for a client to connect
-	int clntSock = accept(servScok, (struct sockaddr*)&clntAddr, &clntAddrLen);
+	int clntSock = accept(servSock, (struct sockaddr*)&clntAddr, &clntAddrLen);
 	if (clntSock < 0)
 		DieWithSystemMessage("accpet() failed");
 
 	// clntSock is connected to a client
 	return clntSock;
 }
-
-enum sizeConstants {
-	MAXCLNT = 5,
-};
-
-#endif

@@ -10,6 +10,9 @@
 #include "SocketUtility.h"
 #include "HttpUtility.h"
 
+void process_rq(char *rq, int fd);
+void print_ascii(char *str);
+
 void read_til_crnl(FILE *fp)
 {
 	char buf[BUFSIZ];
@@ -21,7 +24,7 @@ int main(int argc, char *argv[]) {
 	if (argc != 2)
 		DieWithUserMessage("Parameter(s)", "<Server Port/Service>");
 
-	int servSock = SetupTCPServerSocket(arg[1]);
+	int servSock = SetupTCPServerSocket(argv[1]);
 
 	for (;;) {	// Run forever
 		int clntSock = AcceptTCPConnection(servSock);
@@ -29,14 +32,26 @@ int main(int argc, char *argv[]) {
 		// read request
 		char request[BUFSIZ];
 		FILE *fpin = fdopen(clntSock, "r");
-		fgets(request, BUFSIZ, fpin);
-		printf("got a call: request = %s\n", request);
-		read_til_crnl(fpin);
-
-		process_rq(request, fd);
+		while( fgets(request, BUFSIZ, fpin) )
+		{
+			print_ascii(request);
+		}
+		printf("|EOF|\n");
 
 		fclose(fpin);
 	}
 
 	return 0;	// Not Reached
 }
+
+void process_rq(char *request, int clntfd)
+{
+}
+
+void print_ascii(char *str)
+{
+	int n = 200;
+	while(*str++) printf("%d ", *str);
+}
+
+

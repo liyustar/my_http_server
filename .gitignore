@@ -1,0 +1,5 @@
+*.o
+httpd
+test
+*.txt
+
