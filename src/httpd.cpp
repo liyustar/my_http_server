@@ -7,6 +7,9 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <iostream>
+using namespace std;
+
 #include "SocketUtility.h"
 #include "HttpUtility.h"
 
@@ -30,13 +33,20 @@ int main(int argc, char *argv[]) {
 		int clntSock = AcceptTCPConnection(servSock);
 
 		// read request
-		char request[BUFSIZ];
+		Http_message request;
+		char buf[BUFSIZ];
 		FILE *fpin = fdopen(clntSock, "r");
-		while( fgets(request, BUFSIZ, fpin) )
+		fgets(buf, BUFSIZ, fpin);
+		request.parseStartLine(buf);			// request start line
+		while( fgets(buf, BUFSIZ, fpin) )		// request headers
 		{
-			print_ascii(request);
+			if(0 == strcmp("\r\n", buf)) break;
+			request.parseHeader(buf);
 		}
 		printf("|EOF|\n");
+
+		// response
+		cout << request.buildMessage() << "|build finish|" << endl;
 
 		fclose(fpin);
 	}

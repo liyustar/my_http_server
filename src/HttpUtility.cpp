@@ -1,6 +1,9 @@
 #include "HttpUtility.h"
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
+
+using namespace std;
 
 Http_message::Http_message()
 {
@@ -15,7 +18,7 @@ int Http_message::parseStartLine(char *startLine)
 {
 	// sample: "GET /index.html HTTP/1.0"
 	char method_str[BUFSIZ], request_uri[BUFSIZ], http_version[BUFSIZ];
-	if(3 == sscanf(startLine, "%s /%s HTTP/%s\r\n",
+	if(3 == sscanf(startLine, "%s /%s HTTP/%s",
 			method_str, request_uri, http_version) )
 		printf("start Line: %s %s %s\n",
 			method_str, request_uri, http_version);
@@ -32,23 +35,49 @@ int Http_message::parseStartLine(char *startLine)
 	return 0;
 }
 
+void star_printf(char *s, int len)
+{
+	for(int i=0; i<len; i++)
+		printf("%d ", *(s+i));
+	printf("\n");
+}
+
+// 解析头部字串
+// 		1.  field: value	一定要有':' value不为空
+// 		2.  value	两端可能会有空格' '
+// 		3.  对参数有修改
+// 		4.  不支持多行header
 int Http_message::parseHeader(char *header)
 {
 	// sample: "Host: www.liyuxing.com"
-	char header_field[64], header_value[BUFSIZ];
-	if(2 == sscanf("%s:%s\r\n",
+	char *pos;
+	pair<string, string> header_item;
+	pos = strstr(header, ":");
+	*pos = '\0';
+	header_item.first = header;
+	while(isspace(*(++pos)))
+		;
+	header = pos;
+	pos = strstr(header, "\r\n");
+	*pos = '\0';
+	header_item.second = header;
+
+	cout << "header--:" << header_item.first << ": " << header_item.second << endl;
+
+	/*
+	if(2 == sscanf(header, "%s%s",
 				header_field, header_value))
+	{
 		printf("Header--: %s %s\n",
 				header_field, header_value);
+		// header_field 包含':'符号
+	}
 	else
 	{
 		perror("Header error");
 		return -1;
 	}
-
-	pair<string, string> header_item;
-	header_item.first = header_field;
-	header_item.second = header_value;
+	*/
 
 	headers.insert(header_item);
 	return 0;
