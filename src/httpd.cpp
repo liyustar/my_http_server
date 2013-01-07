@@ -13,7 +13,6 @@ using namespace std;
 #include "SocketUtility.h"
 #include "HttpUtility.h"
 
-void process_rq(char *rq, int fd);
 void print_ascii(char *str);
 
 void read_til_crnl(FILE *fp)
@@ -46,16 +45,12 @@ int main(int argc, char *argv[]) {
 		printf("|EOF|\n");
 
 		// response
-		cout << request.buildMessage() << "|build finish|" << endl;
+		cout << request.buildMsgHeader() << "|build finish|" << endl;
 
 		fclose(fpin);
 	}
 
 	return 0;	// Not Reached
-}
-
-void process_rq(char *request, int clntfd)
-{
 }
 
 void print_ascii(char *str)

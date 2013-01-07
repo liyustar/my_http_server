@@ -8,6 +8,8 @@ using namespace std;
 Http_message::Http_message()
 {
 	method = HM_NONE;
+	statusCode = 0;
+	isSendBody = false;
 }
 
 Http_message::~Http_message()
@@ -94,7 +96,7 @@ Http_message::http_method Http_message::parseMethodStr(char *str)
 	else return HM_NONE;
 }
 
-string Http_message::buildMessage()
+string Http_message::buildMsgHeader()
 {
 	string msg;
 	msg += getMethodStr(method) + " "
@@ -124,5 +126,78 @@ string Http_message::getMethodStr(http_method hm)
 	return str;
 }
 
+void Http_message::makeHeader(int status, string contentType,
+		char *arg) 
+{
+	statusCode = status;
+	headers.insert(make_pair("Content-type", contentType));
+	switch(status) {
+		case 200:
+			break;
+		case 404:
+			body = BODY_404;
+			isSendBody = true;
+			break;
+		case 501:
+			body = BODY_501;
+			isSendBody = true;
+			break;
+		default:
+			perror("not implement this Status Code\n");
+			exit(1);
+	}
+}
 
+/*
+ * HTTP message 的处理类(method)
+ */
+void process_rq(Http_message msg, int clntfd) 
+{
 
+}
+
+void cannot_do(int fd)
+{
+	Http_message respone;
+	respone.makeHeader(505, "text/plain");
+}
+
+void do_404(char *item, int fd)
+{
+	Http_message respone;
+	respone.makeHeader(404, "text/plain", item);
+}
+
+void do_ls(char *dir, int fd);
+void do_exec(char *prog, int fd);
+void do_cat(char *filename, int fd);
+
+int isadir(char *filename);
+{
+	struct stat info;
+	return (stat(filename, &info) != -1
+			&& S_ISDIR(info.st_mode));
+}
+
+int isexist(char *filename)
+{
+	struct stat info;
+	return (stat(filename, &info) != -1);
+}
+
+int ends_in_cgi(char *filename)
+{
+	if (strcmp(file_type(filename), "cgi") == 0)
+		return true;
+	else
+		return false;
+}
+
+char * file_type(char *filename)
+{
+	char *cp;
+	if ( (cp = strrchr(filename, '.')) == NULL)
+		return "";
+	else
+		return cp + 1;
+}
