@@ -45,7 +45,8 @@ int main(int argc, char *argv[]) {
 		printf("|EOF|\n");
 
 		// response
-		cout << request.buildMsgHeader() << "|build finish|" << endl;
+		// cout << request.buildMsgHeader() << "|build finish|" << endl;
+		process_rq(request, clntSock);
 
 		fclose(fpin);
 	}

@@ -1,12 +1,25 @@
 #include "HttpUtility.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <wait.h>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
 Http_message::Http_message()
 {
+	method = HM_NONE;
+	statusCode = 0;
+	isSendBody = false;
+}
+
+Http_message::Http_message(string ver)
+{
+	version = ver;
 	method = HM_NONE;
 	statusCode = 0;
 	isSendBody = false;
@@ -112,6 +125,33 @@ string Http_message::buildMsgHeader()
 	return msg;
 }
 
+string Http_message::buildResponeHeader()
+{
+	string msg;
+	// HTTP/1.1 200 OK
+	msg = "HTTP/";
+	msg += version + " "
+			+ itostr(statusCode) + " "
+			+ getCodeStr(statusCode) + "\r\n";
+
+	map<string,string>::iterator pos;
+	for( pos=headers.begin(); pos!=headers.end(); ++pos) {
+	   msg += pos->first + ": " + pos->second + "\r\n";
+	}
+	msg += "\r\n";
+
+	return msg;
+}
+
+string Http_message::buildResponeMsg()
+{
+	string msg;
+	msg += buildResponeHeader();
+	if(isSendBody)
+		msg += body;
+	return msg;
+}
+
 string Http_message::getMethodStr(http_method hm)
 {
 	string str;
@@ -126,8 +166,20 @@ string Http_message::getMethodStr(http_method hm)
 	return str;
 }
 
+string Http_message::getCodeStr(int code)
+{
+	string str;
+	switch(code) {
+		case 200:	str=REASON_200;	break;
+		case 404:	str=REASON_404;	break;
+		case 501:	str=REASON_501;	break;
+		default:	str="";	break;
+	}
+	return str;
+}
+
 void Http_message::makeHeader(int status, string contentType,
-		char *arg) 
+		const char *arg) 
 {
 	statusCode = status;
 	headers.insert(make_pair("Content-type", contentType));
@@ -153,39 +205,74 @@ void Http_message::makeHeader(int status, string contentType,
  */
 void process_rq(Http_message msg, int clntfd) 
 {
+	int pid;
+	// create a new process and return if not the child
+	if ( (pid=fork()) != 0)
+	{
+		waitpid(pid, NULL, 0);
+		return;
+	}
 
+	if (Http_message::HM_GET != msg.method)
+		cannot_do(clntfd);
+	else if ( !isexist(msg.uri.c_str()) )
+		do_404(msg.uri.c_str(), clntfd);
+	/*
+	else if ( isadir(msg.uri.c_str()) )
+		do_ls(msg.uri.c_str(), clntfd);
+	else if ( ends_in_cgi(msg.uri.c_str()) )
+		do_exec(msg.uri.c_str(), clntfd);
+	else
+		do_cat(msg.uri.c_str(), clntfd);
+		*/
 }
 
 void cannot_do(int fd)
 {
-	Http_message respone;
-	respone.makeHeader(505, "text/plain");
+	Http_message respone("1.1");
+	string rsp_buf;
+	respone.makeHeader(501, "text/plain");
+	rsp_buf = respone.buildResponeMsg();
+	if (send(fd, rsp_buf.data(), rsp_buf.size(), 0) != rsp_buf.size())
+	{
+		perror("send 501 error\n");
+		exit(1);
+	}
+	exit(0);
 }
 
-void do_404(char *item, int fd)
+void do_404(const char *item, int fd)
 {
-	Http_message respone;
+	Http_message respone("1.1");
+	string rsp_buf;
 	respone.makeHeader(404, "text/plain", item);
+	rsp_buf = respone.buildResponeMsg();
+	if (send(fd, rsp_buf.data(), rsp_buf.size(), 0) != rsp_buf.size())
+	{
+		perror("send 404 error\n");
+		exit(1);
+	}
+	exit(0);
 }
 
-void do_ls(char *dir, int fd);
-void do_exec(char *prog, int fd);
-void do_cat(char *filename, int fd);
+// void do_ls(char *dir, int fd);
+// void do_exec(char *prog, int fd);
+// void do_cat(char *filename, int fd);
 
-int isadir(char *filename);
+int isadir(const char *filename)
 {
 	struct stat info;
 	return (stat(filename, &info) != -1
 			&& S_ISDIR(info.st_mode));
 }
 
-int isexist(char *filename)
+int isexist(const char *filename)
 {
 	struct stat info;
 	return (stat(filename, &info) != -1);
 }
 
-int ends_in_cgi(char *filename)
+int ends_in_cgi(const char *filename)
 {
 	if (strcmp(file_type(filename), "cgi") == 0)
 		return true;
@@ -193,11 +280,21 @@ int ends_in_cgi(char *filename)
 		return false;
 }
 
-char * file_type(char *filename)
+const char * file_type(const char *filename)
 {
-	char *cp;
+	const char *cp;
 	if ( (cp = strrchr(filename, '.')) == NULL)
 		return "";
 	else
 		return cp + 1;
 }
+
+string itostr(int num)
+{
+	string str;
+	char numstr[12];
+	sprintf(numstr, "%d", num);
+	str = numstr;
+	return str;
+}
+
