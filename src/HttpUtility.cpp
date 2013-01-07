@@ -217,9 +217,9 @@ void process_rq(Http_message msg, int clntfd)
 		cannot_do(clntfd);
 	else if ( !isexist(msg.uri.c_str()) )
 		do_404(msg.uri.c_str(), clntfd);
-	/*
 	else if ( isadir(msg.uri.c_str()) )
 		do_ls(msg.uri.c_str(), clntfd);
+	/*
 	else if ( ends_in_cgi(msg.uri.c_str()) )
 		do_exec(msg.uri.c_str(), clntfd);
 	else
@@ -255,7 +255,33 @@ void do_404(const char *item, int fd)
 	exit(0);
 }
 
-// void do_ls(char *dir, int fd);
+void do_ls(const char *dir, int fd)
+{
+	Http_message respone("1.1");
+	string rsp_buf;
+	respone.makeHeader(200, "text/plain", dir);
+	rsp_buf = respone.buildResponeMsg();
+	
+	if (send(fd, rsp_buf.data(), rsp_buf.size(), 0) != rsp_buf.size())
+	{
+		perror("send 200 error\n");
+		exit(1);
+	}
+
+	FILE *fout = fdopen(fd, "w");
+	FILE *ls_pipe = popen("ls", "r");
+	char line[BUFSIZ];
+	while( fgets(line, BUFSIZ, ls_pipe) != NULL ) {
+		if( fprintf(fout, line) == 0)
+		{
+			perror("fprintf error");
+			exit(1);
+		}
+	}
+	pclose(ls_pipe);
+
+	exit(0);
+}
 // void do_exec(char *prog, int fd);
 // void do_cat(char *filename, int fd);
 
