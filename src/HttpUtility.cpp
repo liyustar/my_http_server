@@ -222,9 +222,9 @@ void process_rq(Http_message msg, int clntfd)
 	/*
 	else if ( ends_in_cgi(msg.uri.c_str()) )
 		do_exec(msg.uri.c_str(), clntfd);
+		*/
 	else
 		do_cat(msg.uri.c_str(), clntfd);
-		*/
 }
 
 void cannot_do(int fd)
@@ -268,8 +268,10 @@ void do_ls(const char *dir, int fd)
 		exit(1);
 	}
 
+	string cmd("ls ");
+	cmd += dir;
 	FILE *fout = fdopen(fd, "w");
-	FILE *ls_pipe = popen("ls", "r");
+	FILE *ls_pipe = popen(cmd.c_str(), "r");
 	char line[BUFSIZ];
 	while( fgets(line, BUFSIZ, ls_pipe) != NULL ) {
 		if( fprintf(fout, line) == 0)
@@ -283,7 +285,36 @@ void do_ls(const char *dir, int fd)
 	exit(0);
 }
 // void do_exec(char *prog, int fd);
-// void do_cat(char *filename, int fd);
+
+void do_cat(const char *filename, int fd)
+{
+	Http_message respone("1.1");
+	string rsp_buf;
+	respone.makeHeader(200, "text/plain", filename);
+	rsp_buf = respone.buildResponeMsg();
+	
+	if (send(fd, rsp_buf.data(), rsp_buf.size(), 0) != rsp_buf.size())
+	{
+		perror("send 200 error\n");
+		exit(1);
+	}
+
+	string cmd("cat ");
+	cmd += filename;
+	FILE *fout = fdopen(fd, "w");
+	FILE *ls_pipe = popen(cmd.c_str(), "r");
+	char line[BUFSIZ];
+	while( fgets(line, BUFSIZ, ls_pipe) != NULL ) {
+		if( fprintf(fout, line) == 0)
+		{
+			perror("fprintf error");
+			exit(1);
+		}
+	}
+	pclose(ls_pipe);
+
+	exit(0);
+}
 
 int isadir(const char *filename)
 {
