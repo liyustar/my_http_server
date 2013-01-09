@@ -58,11 +58,11 @@ class Http_message {
 // HTTP message 的处理类(method)
 // uup P376
 void process_rq(Http_message msg, int clntfd);
-void cannot_do(int fd);
-void do_404(const char *item, int fd);
-void do_ls(const char *dir, int fd);
-void do_exec(const char *prog, int fd);
-void do_cat(const char *filename, int fd);
+void cannot_do(int fd, Http_message::http_method method);
+void do_404(const char *item, int fd, Http_message::http_method method);
+void do_ls(const char *dir, int fd, Http_message::http_method method);
+void do_exec(const char *prog, int fd, Http_message::http_method method);
+void do_cat(const char *filename, int fd, Http_message::http_method method);
 
 int isadir(const char *filename);
 int isexist(const char *filename);

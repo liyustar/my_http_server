@@ -1,3 +1,14 @@
+support method: GET HEAD
+support ls, cat, exec
+
+respone status: 200 404 501
+
+extension: html htm text 
+
+multiprocess
+
+goal: config_file
+
 12-22 Start a project of httpd
 
 cat content-type
