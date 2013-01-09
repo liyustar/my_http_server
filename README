@@ -1,1 +1,6 @@
 12-22 Start a project of httpd
+
+cat content-type
+
+-fixed  bug: GET / HTTP/1.1
+bug: 二进制文件不用 fgets 或者不能用 fprintf

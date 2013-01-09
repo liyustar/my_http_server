@@ -69,6 +69,7 @@ int isexist(const char *filename);
 int ends_in_cgi(const char *filename);
 
 const char * file_type(const char *filename);
+string mime_type(const char *suffix);
 
 string itostr(int num);
 

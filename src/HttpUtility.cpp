@@ -33,7 +33,7 @@ int Http_message::parseStartLine(char *startLine)
 {
 	// sample: "GET /index.html HTTP/1.0"
 	char method_str[BUFSIZ], request_uri[BUFSIZ], http_version[BUFSIZ];
-	if(3 == sscanf(startLine, "%s /%s HTTP/%s",
+	if(3 == sscanf(startLine, "%s %s HTTP/%s",
 			method_str, request_uri, http_version) )
 		printf("start Line: %s %s %s\n",
 			method_str, request_uri, http_version);
@@ -44,7 +44,8 @@ int Http_message::parseStartLine(char *startLine)
 	}
 
 	method = parseMethodStr(method_str);
-	uri = request_uri;
+	uri = ".";
+	uri += request_uri;
 	version = http_version;
 
 	return 0;
@@ -182,7 +183,8 @@ void Http_message::makeHeader(int status, string contentType,
 		const char *arg) 
 {
 	statusCode = status;
-	headers.insert(make_pair("Content-type", contentType));
+	if (contentType.compare("") != 0)
+		headers.insert(make_pair("Content-type", contentType));
 	switch(status) {
 		case 200:
 			break;
@@ -219,10 +221,8 @@ void process_rq(Http_message msg, int clntfd)
 		do_404(msg.uri.c_str(), clntfd);
 	else if ( isadir(msg.uri.c_str()) )
 		do_ls(msg.uri.c_str(), clntfd);
-	/*
 	else if ( ends_in_cgi(msg.uri.c_str()) )
 		do_exec(msg.uri.c_str(), clntfd);
-		*/
 	else
 		do_cat(msg.uri.c_str(), clntfd);
 }
@@ -284,13 +284,28 @@ void do_ls(const char *dir, int fd)
 
 	exit(0);
 }
-// void do_exec(char *prog, int fd);
+
+void do_exec(const char *prog, int fd)
+{
+	Http_message respone("1.1");
+	string rsp_buf;
+	respone.makeHeader(200, "", prog);
+	rsp_buf = respone.buildResponeMsg();
+
+	dup2(fd, 1);
+	dup2(fd, 2);
+	close(fd);
+	execl(prog, prog, NULL);
+	perror("do_exec error");
+	exit(1);
+}
 
 void do_cat(const char *filename, int fd)
 {
 	Http_message respone("1.1");
 	string rsp_buf;
-	respone.makeHeader(200, "text/plain", filename);
+	string content_type = mime_type(file_type(filename));
+	respone.makeHeader(200, content_type.c_str(), filename);
 	rsp_buf = respone.buildResponeMsg();
 	
 	if (send(fd, rsp_buf.data(), rsp_buf.size(), 0) != rsp_buf.size())
@@ -344,6 +359,29 @@ const char * file_type(const char *filename)
 		return "";
 	else
 		return cp + 1;
+}
+
+string mime_type(const char *suffix)
+{
+	string str;
+	if (0 == strcmp(suffix, "html")
+		 || 0 == strcmp(suffix, "htm"))
+		str = "text/html";
+	else if (0 == strcmp(suffix, "css"))
+		str = "text/css";
+	else if (0 == strcmp(suffix, "bmp"))
+		str = "image/bmp";
+	else if (0 == strcmp(suffix, "gif"))
+		str = "image/gif";
+	else if (0 == strcmp(suffix, "png"))
+		str = "image/png";
+	else if (0 == strcmp(suffix, "jpeg")
+			|| 0 == strcmp(suffix, "jpg"))
+		str = "image/jpeg";
+	else
+		str = "text/plain";
+	
+	return str;
 }
 
 string itostr(int num)
