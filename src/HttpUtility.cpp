@@ -215,29 +215,18 @@ void process_rq(Http_message msg, int clntfd)
 		return;
 	}
 
-	// GET method
-	if (Http_message::HM_GET != msg.method)
-		cannot_do(clntfd, Http_message::HM_GET);
+	// GET method and HEAD method
+	if (Http_message::HM_GET != msg.method
+	|| Http_message::HM_GET != msg.method)
+		cannot_do(clntfd, msg.method);
 	else if ( !isexist(msg.uri.c_str()) )
-		do_404(msg.uri.c_str(), clntfd, Http_message::HM_GET);
+		do_404(msg.uri.c_str(), clntfd, msg.method);
 	else if ( isadir(msg.uri.c_str()) )
-		do_ls(msg.uri.c_str(), clntfd, Http_message::HM_GET);
+		do_ls(msg.uri.c_str(), clntfd, msg.method);
 	else if ( ends_in_cgi(msg.uri.c_str()) )
-		do_exec(msg.uri.c_str(), clntfd, Http_message::HM_GET);
+		do_exec(msg.uri.c_str(), clntfd, msg.method);
 	else
-		do_cat(msg.uri.c_str(), clntfd, Http_message::HM_GET);
-
-	// HEAD method
-	if (Http_message::HM_HEAD != msg.method)
-		cannot_do(clntfd, Http_message::HM_HEAD);
-	else if ( !isexist(msg.uri.c_str()) )
-		do_404(msg.uri.c_str(), clntfd, Http_message::HM_HEAD);
-	else if ( isadir(msg.uri.c_str()) )
-		do_ls(msg.uri.c_str(), clntfd, Http_message::HM_HEAD);
-	else if ( ends_in_cgi(msg.uri.c_str()) )
-		do_exec(msg.uri.c_str(), clntfd, Http_message::HM_HEAD);
-	else
-		do_cat(msg.uri.c_str(), clntfd, Http_message::HM_HEAD);
+		do_cat(msg.uri.c_str(), clntfd, msg.method);
 }
 
 void cannot_do(int fd, Http_message::http_method method)
@@ -246,7 +235,7 @@ void cannot_do(int fd, Http_message::http_method method)
 	string rsp_buf;
 	respone.makeHeader(501, "text/plain");
 
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 		rsp_buf = respone.buildResponeHeader();
 	else
 		rsp_buf = respone.buildResponeMsg();
@@ -264,7 +253,7 @@ void do_404(const char *item, int fd, Http_message::http_method method)
 	Http_message respone("1.1");
 	string rsp_buf;
 	respone.makeHeader(404, "text/plain", item);
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 		rsp_buf = respone.buildResponeHeader();
 	else
 		rsp_buf = respone.buildResponeMsg();
@@ -273,7 +262,6 @@ void do_404(const char *item, int fd, Http_message::http_method method)
 		perror("send 404 error\n");
 		exit(1);
 	}
-	close(fd);
 	exit(0);
 }
 
@@ -282,7 +270,7 @@ void do_ls(const char *dir, int fd, Http_message::http_method method)
 	Http_message respone("1.1");
 	string rsp_buf;
 	respone.makeHeader(200, "text/plain", dir);
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 		rsp_buf = respone.buildResponeHeader();
 	else
 		rsp_buf = respone.buildResponeMsg();
@@ -292,7 +280,7 @@ void do_ls(const char *dir, int fd, Http_message::http_method method)
 		perror("send 200 error\n");
 		exit(1);
 	}
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 	{
 		close(fd);
 		exit(0);
@@ -302,6 +290,7 @@ void do_ls(const char *dir, int fd, Http_message::http_method method)
 	string cmd("ls ");
 	cmd += dir;
 	FILE *fout = fdopen(fd, "w");
+	printf("ls cmd: %s\n", cmd.c_str());
 	FILE *ls_pipe = popen(cmd.c_str(), "r");
 	char line[BUFSIZ];
 	while( fgets(line, BUFSIZ, ls_pipe) != NULL ) {
@@ -312,7 +301,7 @@ void do_ls(const char *dir, int fd, Http_message::http_method method)
 		}
 	}
 	pclose(ls_pipe);
-	close(fd);
+	// close(fd);
 
 	exit(0);
 }
@@ -322,7 +311,7 @@ void do_exec(const char *prog, int fd, Http_message::http_method method)
 	Http_message respone("1.1");
 	string rsp_buf;
 	respone.makeHeader(200, "", prog);
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 		rsp_buf = respone.buildResponeHeader();
 	else
 		rsp_buf = respone.buildResponeMsg();
@@ -332,7 +321,7 @@ void do_exec(const char *prog, int fd, Http_message::http_method method)
 		perror("send 200 error\n");
 		exit(1);
 	}
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 	{
 		close(fd);
 		exit(0);
@@ -353,7 +342,7 @@ void do_cat(const char *filename, int fd, Http_message::http_method method)
 	string content_type = mime_type(file_type(filename));
 	respone.makeHeader(200, content_type.c_str(), filename);
 
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 		rsp_buf = respone.buildResponeHeader();
 	else
 		rsp_buf = respone.buildResponeMsg();
@@ -363,7 +352,7 @@ void do_cat(const char *filename, int fd, Http_message::http_method method)
 		perror("send 200 error\n");
 		exit(1);
 	}
-	if (Http_message::HM_GET == method)
+	if (Http_message::HM_HEAD == method)
 	{
 		close(fd);
 		exit(0);
@@ -382,7 +371,6 @@ void do_cat(const char *filename, int fd, Http_message::http_method method)
 		}
 	}
 	pclose(ls_pipe);
-	close(fd);
 
 	exit(0);
 }
