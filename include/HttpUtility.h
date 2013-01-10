@@ -62,11 +62,12 @@ void cannot_do(int fd, Http_message::http_method method);
 void do_404(const char *item, int fd, Http_message::http_method method);
 void do_ls(const char *dir, int fd, Http_message::http_method method);
 void do_exec(const char *prog, int fd, Http_message::http_method method);
+void do_copy(const char *filename, int fd, Http_message::http_method method);
 void do_cat(const char *filename, int fd, Http_message::http_method method);
 
 int isadir(const char *filename);
 int isexist(const char *filename);
-int ends_in_cgi(const char *filename);
+int ends_in(const char *suffix, const char *filename);
 
 const char * file_type(const char *filename);
 string mime_type(const char *suffix);

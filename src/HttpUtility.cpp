@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <wait.h>
 #include <iostream>
@@ -223,8 +225,10 @@ void process_rq(Http_message msg, int clntfd)
 		do_404(msg.uri.c_str(), clntfd, msg.method);
 	else if ( isadir(msg.uri.c_str()) )
 		do_ls(msg.uri.c_str(), clntfd, msg.method);
-	else if ( ends_in_cgi(msg.uri.c_str()) )
+	else if ( ends_in("cgi", msg.uri.c_str()) )
 		do_exec(msg.uri.c_str(), clntfd, msg.method);
+	else if ( ends_in("jpg", msg.uri.c_str()) )
+		do_copy(msg.uri.c_str(), clntfd, msg.method);
 	else
 		do_cat(msg.uri.c_str(), clntfd, msg.method);
 }
@@ -316,7 +320,7 @@ void do_exec(const char *prog, int fd, Http_message::http_method method)
 	else
 		rsp_buf = respone.buildResponeMsg();
 	
-	if (send(fd, rsp_buf.data(), rsp_buf.size(), 0) != rsp_buf.size())
+	if (send(fd, rsp_buf.data(), rsp_buf.size()-2, 0) != rsp_buf.size()-2)
 	{
 		perror("send 200 error\n");
 		exit(1);
@@ -333,6 +337,44 @@ void do_exec(const char *prog, int fd, Http_message::http_method method)
 	execl(prog, prog, NULL);
 	perror("do_exec error");
 	exit(1);
+}
+
+void do_copy(const char *filename, int fd, Http_message::http_method method)
+{
+	Http_message respone("1.1");
+	string rsp_buf;
+	string content_type = mime_type(file_type(filename));
+	respone.makeHeader(200, content_type.c_str(), filename);
+
+	if (Http_message::HM_HEAD == method)
+		rsp_buf = respone.buildResponeHeader();
+	else
+		rsp_buf = respone.buildResponeMsg();
+	
+	if (send(fd, rsp_buf.data(), rsp_buf.size(), 0) != rsp_buf.size())
+	{
+		perror("send 200 error\n");
+		exit(1);
+	}
+	if (Http_message::HM_HEAD == method)
+	{
+		close(fd);
+		exit(0);
+	}
+
+	int len, readfd = open(filename, O_RDONLY);
+	char buf[BUFSIZ];
+	while( (len = read(readfd, buf, BUFSIZ)) > 0)
+	{
+		if( write(fd, buf, len) != len)
+		{
+			perror("write error");
+			exit(1);
+		}
+	}
+	close(readfd);
+
+	exit(0);
 }
 
 void do_cat(const char *filename, int fd, Http_message::http_method method)
@@ -388,9 +430,9 @@ int isexist(const char *filename)
 	return (stat(filename, &info) != -1);
 }
 
-int ends_in_cgi(const char *filename)
+int ends_in(const char *suffix, const char *filename)
 {
-	if (strcmp(file_type(filename), "cgi") == 0)
+	if (strcmp(file_type(filename), suffix) == 0)
 		return true;
 	else
 		return false;
