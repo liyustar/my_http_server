@@ -236,6 +236,7 @@ void process_rq(Http_message msg, int clntfd)
 		do_exec(msg.uri.c_str(), clntfd, msg.method);
 	else if ( ends_in("jpg", msg.uri.c_str()) 
 			|| ends_in("jpeg", msg.uri.c_str()) 
+			|| ends_in("gif", msg.uri.c_str()) 
 			|| ends_in("png", msg.uri.c_str()) )
 		do_copy(msg.uri.c_str(), clntfd, msg.method);
 	else
