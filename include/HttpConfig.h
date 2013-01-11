@@ -12,6 +12,7 @@ class Http_config {
 	public:
 		string config_file;
 		string working_directory;
+		string log_file;
 		int worker_processes;
 
 	public:

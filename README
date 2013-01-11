@@ -1,3 +1,12 @@
+运行方法：
+1) make			编译程序，编译后在当前目录会有httpd可执行文件
+2) ./httpd <port>		运行程序，程序会监听port端口的请求	
+
+注意：
+1) 在运行的时候，要从当前目录的http_config文件中导入配置信息。
+
+
+
 support method: GET HEAD
 support ls, cat, exec
 
@@ -6,12 +15,3 @@ respone status: 200 404 501
 extension: html htm text 
 
 multiprocess
-
-goal: config_file advance_cgi
-
-12-22 Start a project of httpd
-
-cat content-type
-
--fixed  bug: GET / HTTP/1.1
--fixed	bug: 二进制文件不用 fgets 或者不能用 fprintf

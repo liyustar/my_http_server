@@ -6,3 +6,5 @@ worker_processes 5
 
 # should not add '/' after the directory
 working_directory ./www
+
+log_file ./http_log

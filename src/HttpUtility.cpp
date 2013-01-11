@@ -1,5 +1,6 @@
 #include "HttpUtility.h"
 #include "HttpConfig.h"
+#include "HttpLog.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -37,6 +38,9 @@ Http_message::~Http_message()
 int Http_message::parseStartLine(char *startLine)
 {
 	// sample: "GET /index.html HTTP/1.0"
+	Http_log log;
+	log.addlog(startLine);
+
 	char method_str[BUFSIZ], request_uri[BUFSIZ], http_version[BUFSIZ];
 	if(3 == sscanf(startLine, "%s %s HTTP/%s",
 			method_str, request_uri, http_version) )
@@ -222,7 +226,7 @@ void process_rq(Http_message msg, int clntfd)
 
 	// GET method and HEAD method
 	if (Http_message::HM_GET != msg.method
-	|| Http_message::HM_GET != msg.method)
+			|| Http_message::HM_GET != msg.method)
 		cannot_do(clntfd, msg.method);
 	else if ( !isexist(msg.uri.c_str()) )
 		do_404(msg.uri.c_str(), clntfd, msg.method);
@@ -230,7 +234,9 @@ void process_rq(Http_message msg, int clntfd)
 		do_ls(msg.uri.c_str(), clntfd, msg.method);
 	else if ( ends_in("cgi", msg.uri.c_str()) )
 		do_exec(msg.uri.c_str(), clntfd, msg.method);
-	else if ( ends_in("jpg", msg.uri.c_str()) )
+	else if ( ends_in("jpg", msg.uri.c_str()) 
+			|| ends_in("jpeg", msg.uri.c_str()) 
+			|| ends_in("png", msg.uri.c_str()) )
 		do_copy(msg.uri.c_str(), clntfd, msg.method);
 	else
 		do_cat(msg.uri.c_str(), clntfd, msg.method);
@@ -458,6 +464,8 @@ string mime_type(const char *suffix)
 		str = "text/html";
 	else if (0 == strcmp(suffix, "css"))
 		str = "text/css";
+	else if (0 == strcmp(suffix, "js"))
+		str = "text/javascript";
 	else if (0 == strcmp(suffix, "bmp"))
 		str = "image/bmp";
 	else if (0 == strcmp(suffix, "gif"))
