@@ -1,4 +1,5 @@
 #include "HttpUtility.h"
+#include "HttpConfig.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,6 +12,8 @@
 #include <string>
 
 using namespace std;
+
+extern Http_config http_config;
 
 Http_message::Http_message()
 {
@@ -46,7 +49,7 @@ int Http_message::parseStartLine(char *startLine)
 	}
 
 	method = parseMethodStr(method_str);
-	uri = ".";
+	uri = http_config.working_directory;
 	uri += request_uri;
 	version = http_version;
 
